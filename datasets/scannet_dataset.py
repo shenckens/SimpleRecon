@@ -9,11 +9,11 @@ from utils.generic_utils import (readlines, read_image_file)
 
 
 class ScannetDataset(GenericMVSDataset):
-    """ 
+    """
     MVS ScanNetv2 Dataset class for SimpleRecon.
-    
-    Inherits from GenericMVSDataset and implements missing methods. See 
-    GenericMVSDataset for how tuples work. 
+
+    Inherits from GenericMVSDataset and implements missing methods. See
+    GenericMVSDataset for how tuples work.
 
     This dataset expects ScanNetv2 to be in the following format:
 
@@ -23,7 +23,7 @@ class ScannetDataset(GenericMVSDataset):
                 scene0707_00_vh_clean_2.ply (gt mesh)
                 sensor_data
                     frame-000261.pose.txt
-                    frame-000261.color.jpg 
+                    frame-000261.color.jpg
                     frame-000261.color.512.png (optional, image at 512x384)
                     frame-000261.color.640.png (optional, image at 640x480)
                     frame-000261.depth.png (full res depth, stored scale *1000)
@@ -37,7 +37,7 @@ class ScannetDataset(GenericMVSDataset):
             scene0000_01
             ....
 
-    In this example scene0707.txt should contain the scan's metadata and 
+    In this example scene0707.txt should contain the scan's metadata and
     intrinsics:
         colorHeight = 968
         colorToDepthExtrinsics = 0.999263 -0.010031 0.037048 -0.038549 ........
@@ -55,19 +55,19 @@ class ScannetDataset(GenericMVSDataset):
         numColorFrames = 784
         numDepthFrames = 784
         numIMUmeasurements = 1632
-    
+
     frame-000261.pose.txt should contain pose in the form:
         -0.384739 0.271466 -0.882203 4.98152
         0.921157 0.0521417 -0.385682 1.46821
         -0.0587002 -0.961035 -0.270124 1.51837
-    
-    frame-000261.color.512.png is a precached resized version of the original 
-    image to save load and compute time during training and testing. Similarly 
-    for frame-000261.color.640.png. frame-000261.depth.256.png is also a 
-    precached resized version of the depth map. 
 
-    All resized precached versions of depth and images are nice to have but not 
-    required. If they don't exist, the full res versions will be loaded, and 
+    frame-000261.color.512.png is a precached resized version of the original
+    image to save load and compute time during training and testing. Similarly
+    for frame-000261.color.640.png. frame-000261.depth.256.png is also a
+    precached resized version of the depth map.
+
+    All resized precached versions of depth and images are nice to have but not
+    required. If they don't exist, the full res versions will be loaded, and
     downsampled on the fly.
 
     NOTE: This dataset will place NaNs where gt depth maps are invalid.
@@ -84,8 +84,8 @@ class ScannetDataset(GenericMVSDataset):
             num_images_in_tuple=None,
             color_transform=transforms.ColorJitter(0.2, 0.2, 0.2, 0.2),
             tuple_info_file_location=None,
-            image_height=384,
-            image_width=512,
+            image_height=480,#348
+            image_width=640, #512
             high_res_image_width=640,
             high_res_image_height=480,
             image_depth_ratio=2,
@@ -100,19 +100,19 @@ class ScannetDataset(GenericMVSDataset):
         ):
         super().__init__(
                 dataset_path=dataset_path,
-                split=split, mv_tuple_file_suffix=mv_tuple_file_suffix, 
-                include_full_res_depth=include_full_res_depth, 
+                split=split, mv_tuple_file_suffix=mv_tuple_file_suffix,
+                include_full_res_depth=include_full_res_depth,
                 limit_to_scan_id=limit_to_scan_id,
-                num_images_in_tuple=num_images_in_tuple, 
-                color_transform=color_transform, 
-                tuple_info_file_location=tuple_info_file_location, 
-                image_height=image_height, image_width=image_width, 
-                high_res_image_width=high_res_image_width, 
-                high_res_image_height=high_res_image_height, 
-                image_depth_ratio=image_depth_ratio, shuffle_tuple=shuffle_tuple, 
-                include_full_depth_K=include_full_depth_K, 
-                include_high_res_color=include_high_res_color, 
-                pass_frame_id=pass_frame_id, skip_frames=skip_frames, 
+                num_images_in_tuple=num_images_in_tuple,
+                color_transform=color_transform,
+                tuple_info_file_location=tuple_info_file_location,
+                image_height=image_height, image_width=image_width,
+                high_res_image_width=high_res_image_width,
+                high_res_image_height=high_res_image_height,
+                image_depth_ratio=image_depth_ratio, shuffle_tuple=shuffle_tuple,
+                include_full_depth_K=include_full_depth_K,
+                include_high_res_color=include_high_res_color,
+                pass_frame_id=pass_frame_id, skip_frames=skip_frames,
                 verbose_init=verbose_init,
             )
 
@@ -120,41 +120,41 @@ class ScannetDataset(GenericMVSDataset):
         Args:
             dataset_path: base path to the dataaset directory.
             split: the dataset split.
-            mv_tuple_file_suffix: a suffix for the tuple file's name. The 
-                tuple filename searched for wil be 
+            mv_tuple_file_suffix: a suffix for the tuple file's name. The
+                tuple filename searched for wil be
                 {split}{mv_tuple_file_suffix}.
-            tuple_info_file_location: location to search for a tuple file, if 
-                None provided, will search in the dataset directory under 
+            tuple_info_file_location: location to search for a tuple file, if
+                None provided, will search in the dataset directory under
                 'tuples'.
             limit_to_scan_id: limit loaded tuples to one scan's frames.
             num_images_in_tuple: optional integer to limit tuples to this number
                 of images.
-            image_height, image_width: size images should be loaded at/resized 
-                to. 
-            include_high_res_color: should the dataset pass back higher 
+            image_height, image_width: size images should be loaded at/resized
+                to.
+            include_high_res_color: should the dataset pass back higher
                 resolution images.
-            high_res_image_height, high_res_image_width: resolution images 
-                should be resized if we're passing back higher resolution 
+            high_res_image_height, high_res_image_width: resolution images
+                should be resized if we're passing back higher resolution
                 images.
-            image_depth_ratio: returned gt depth maps "depth_b1hw" will be of 
+            image_depth_ratio: returned gt depth maps "depth_b1hw" will be of
                 size (image_height, image_width)/image_depth_ratio.
-            include_full_res_depth: if true will return depth maps from the 
+            include_full_res_depth: if true will return depth maps from the
                 dataset at the highest resolution available.
             color_transform: optional color transform that applies when split is
                 "train".
-            shuffle_tuple: by default source images will be ordered according to 
+            shuffle_tuple: by default source images will be ordered according to
                 overall pose distance to the reference image. When this flag is
                 true, source images will be shuffled. Only used for ablation.
-            pass_frame_id: if we should return the frame_id as part of the item 
+            pass_frame_id: if we should return the frame_id as part of the item
                 dict
             skip_frames: if not none, will stride the tuple list by this value.
-                Useful for only fusing every 'skip_frames' frame when fusing 
+                Useful for only fusing every 'skip_frames' frame when fusing
                 depth.
-            verbose_init: if True will let the init print details on the 
+            verbose_init: if True will let the init print details on the
                 initialization.
             min_valid_depth, max_valid_depth: values to generate a validity mask
                 for depth maps.
-        
+
         """
 
         self.min_valid_depth = min_valid_depth
@@ -172,16 +172,16 @@ class ScannetDataset(GenericMVSDataset):
         """ Returns an id string for this frame_id that's unique to this frame
             within the scan.
 
-            This string is what this dataset uses as a reference to store files 
+            This string is what this dataset uses as a reference to store files
             on disk.
         """
         return frame_id
 
     def get_valid_frame_path(self, split, scan):
-        """ returns the filepath of a file that contains valid frame ids for a 
+        """ returns the filepath of a file that contains valid frame ids for a
             scan. """
 
-        scan_dir = os.path.join(self.dataset_path, 
+        scan_dir = os.path.join(self.dataset_path,
                             self.get_sub_folder_dir(split), scan)
 
         return os.path.join(scan_dir, "valid_frames.txt")
@@ -189,9 +189,9 @@ class ScannetDataset(GenericMVSDataset):
     def get_valid_frame_ids(self, split, scan, store_computed=True):
         """ Either loads or computes the ids of valid frames in the dataset for
             a scan.
-            
-            A valid frame is one that has an existing RGB frame, an existing 
-            depth file, and existing pose file where the pose isn't inf, -inf, 
+
+            A valid frame is one that has an existing RGB frame, an existing
+            depth file, and existing pose file where the pose isn't inf, -inf,
             or nan.
 
             Args:
@@ -203,29 +203,30 @@ class ScannetDataset(GenericMVSDataset):
                 a warning will be printed and the exception reason printed.
 
             Returns:
-                valid_frames: a list of strings with info on valid frames. 
+                valid_frames: a list of strings with info on valid frames.
                 Each string is a concat of the scan_id and the frame_id.
         """
         scan = scan.rstrip("\n")
         valid_frame_path = self.get_valid_frame_path(split, scan)
 
         if os.path.exists(valid_frame_path):
-            # valid frame file exists, read that to find the ids of frames with 
+            # valid frame file exists, read that to find the ids of frames with
             # valid poses.
             with open(valid_frame_path) as f:
                 valid_frames = f.readlines()
         else:
-            # find out which frames have valid poses 
+            # find out which frames have valid poses
 
             #get scannet directories
-            scan_dir = os.path.join(self.dataset_path, 
+            scan_dir = os.path.join(self.dataset_path,
                             self.get_sub_folder_dir(split), scan)
-            sensor_data_dir = os.path.join(scan_dir, "sensor_data")
+            sensor_data_dir = os.path.join(scan_dir)
+            # sensor_data_dir = os.path.join(scan_dir, "sensor_data")
             meta_file_path = os.path.join(scan_dir, scan + ".txt")
-            
+
             with open(meta_file_path, 'r') as f:
                 meta_info_lines = f.readlines()
-                meta_info_lines = [line.split(' = ') for line in 
+                meta_info_lines = [line.split(' = ') for line in
                                                         meta_info_lines]
                 meta_data = {key: val for key, val in meta_info_lines}
 
@@ -235,41 +236,41 @@ class ScannetDataset(GenericMVSDataset):
             bad_file_count = 0
             valid_frames = []
             for frame_id in range(color_file_count):
-                # for a frame to be valid, we need a valid pose and a valid 
+                # for a frame to be valid, we need a valid pose and a valid
                 # color frame.
 
-                color_filename = os.path.join(sensor_data_dir, 
-                                            f"frame-{frame_id:06d}.color.jpg")
-                depth_filename = color_filename.replace(f"color.jpg", 
-                                                        f"depth.png")
-                pose_path = os.path.join(sensor_data_dir, 
-                                            f"frame-{frame_id:06d}.pose.txt")
+                color_filename = os.path.join(sensor_data_dir, 'color',
+                                            f"{frame_id}.jpg")
+                depth_filename = os.path.join(sensor_data_dir, 'depth',
+                                            f"{frame_id}.png")
+                pose_path = os.path.join(sensor_data_dir, 'pose',
+                                            f"{frame_id}=.txt")
 
                 # check if an image file exists.
                 if not os.path.isfile(color_filename):
                     bad_file_count+=1
                     continue
-                
+
                 # check if a depth file exists.
                 if not os.path.isfile(depth_filename):
                     bad_file_count+=1
                     continue
-                
+
                 world_T_cam_44 = np.genfromtxt(pose_path).astype(np.float32)
                 # check if the pose is valid.
-                if (np.isnan(np.sum(world_T_cam_44)) or 
-                    np.isinf(np.sum(world_T_cam_44)) or 
+                if (np.isnan(np.sum(world_T_cam_44)) or
+                    np.isinf(np.sum(world_T_cam_44)) or
                     np.isneginf(np.sum(world_T_cam_44))
                 ):
                     bad_file_count+=1
                     continue
 
-                valid_frames.append(scan + " " + f"{frame_id:06d}")
+                valid_frames.append(scan + " " + f"{frame_id}")
 
             print(f"Scene {scan} has {bad_file_count} bad frame files out of "
                   f"{color_file_count}.")
 
-            # store computed if we're being asked, but wrapped inside a try 
+            # store computed if we're being asked, but wrapped inside a try
             # incase this directory is read only.
             if store_computed:
                 # store those files to valid_frames.txt
@@ -284,7 +285,7 @@ class ScannetDataset(GenericMVSDataset):
 
     @staticmethod
     def get_gt_mesh_path(dataset_path, split, scan_id):
-        """ 
+        """
         Returns a path to a gt mesh reconstruction file.
         """
         gt_path = os.path.join(
@@ -296,135 +297,135 @@ class ScannetDataset(GenericMVSDataset):
         return gt_path
 
     def get_color_filepath(self, scan_id, frame_id):
-        """ returns the filepath for a frame's color file at the dataset's 
+        """ returns the filepath for a frame's color file at the dataset's
             configured RGB resolution.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                Either the filepath for a precached RGB file at the size 
-                required, or if that doesn't exist, the full size RGB frame 
+                Either the filepath for a precached RGB file at the size
+                required, or if that doesn't exist, the full size RGB frame
                 from the dataset.
 
         """
         scene_path = os.path.join(self.scenes_path, scan_id)
-        sensor_data_dir = os.path.join(scene_path, "sensor_data")
+        sensor_data_dir = os.path.join(scene_path)
 
-        cached_resized_path = os.path.join(sensor_data_dir, 
-                            f"frame-{frame_id}.color.{self.image_width}.png")
+        cached_resized_path = os.path.join(sensor_data_dir, 'color',
+                            f"{frame_id}.png")
         # check if we have cached resized images on disk first
         if os.path.exists(cached_resized_path):
             return cached_resized_path
-        
+
         # instead return the default image
-        return os.path.join(sensor_data_dir, f"frame-{frame_id}.color.jpg")
+        return os.path.join(sensor_data_dir, 'color', f"{frame_id}.jpg")
 
     def get_high_res_color_filepath(self, scan_id, frame_id):
-        """ returns the filepath for a frame's higher res color file at the 
+        """ returns the filepath for a frame's higher res color file at the
             dataset's configured high RGB resolution.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                Either the filepath for a precached RGB file at the high res 
-                size required, or if that doesn't exist, the full size RGB frame 
+                Either the filepath for a precached RGB file at the high res
+                size required, or if that doesn't exist, the full size RGB frame
                 from the dataset.
 
         """
 
         scene_path = os.path.join(self.scenes_path, scan_id)
-        sensor_data_dir = os.path.join(scene_path, "sensor_data")
+        sensor_data_dir = os.path.join(scene_path)
 
-        cached_resized_path = os.path.join(sensor_data_dir, 
-                f"frame-{frame_id}.color.{self.high_res_image_height}.png")
+        cached_resized_path = os.path.join(sensor_data_dir, 'color',
+                f"{frame_id}.jpg")
         # check if we have cached resized images on disk first
         if os.path.exists(cached_resized_path):
             return cached_resized_path
-        
+
         # instead return the default image
-        return os.path.join(sensor_data_dir, f"frame-{frame_id}.color.jpg")
+        return os.path.join(sensor_data_dir, 'color', f"{frame_id}.jpg")
 
     def get_cached_depth_filepath(self, scan_id, frame_id):
-        """ returns the filepath for a frame's depth file at the dataset's 
+        """ returns the filepath for a frame's depth file at the dataset's
             configured depth resolution.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                Filepath for a precached depth file at the size 
+                Filepath for a precached depth file at the size
                 required.
 
         """
         scene_path = os.path.join(self.scenes_path, scan_id)
-        sensor_data_dir = os.path.join(scene_path, "sensor_data")
+        sensor_data_dir = os.path.join(scene_path)
 
-        cached_resized_path = os.path.join(sensor_data_dir, 
-                f"frame-{frame_id}.depth.{self.depth_width}.png")
-        
+        cached_resized_path = os.path.join(sensor_data_dir, 'depth',
+                f"{frame_id}.png")
+
         # instead return the default image
         return cached_resized_path
 
     def get_full_res_depth_filepath(self, scan_id, frame_id):
-        """ returns the filepath for a frame's depth file at the native 
+        """ returns the filepath for a frame's depth file at the native
             resolution in the dataset.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                Either the filepath for a precached depth file at the size 
-                required, or if that doesn't exist, the full size depth frame 
+                Either the filepath for a precached depth file at the size
+                required, or if that doesn't exist, the full size depth frame
                 from the dataset.
 
         """
         scene_path = os.path.join(self.scenes_path, scan_id)
-        sensor_data_dir = os.path.join(scene_path, "sensor_data")
+        sensor_data_dir = os.path.join(scene_path)
 
-        return os.path.join(sensor_data_dir, 
-                        f"frame-{frame_id}.depth.png")
+        return os.path.join(sensor_data_dir, 'depth',
+                        f"{frame_id}.png")
 
     def get_pose_filepath(self, scan_id, frame_id):
         """ returns the filepath for a frame's pose file.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
                 Filepath for pose information.
 
         """
 
         scene_path = os.path.join(self.scenes_path, scan_id)
-        sensor_data_dir = os.path.join(scene_path, "sensor_data")
+        sensor_data_dir = os.path.join(scene_path)
 
-        return os.path.join(sensor_data_dir, f"frame-{frame_id}.pose.txt")
+        return os.path.join(sensor_data_dir, 'pose', f"{frame_id}.txt")
 
     def load_intrinsics(self, scan_id, frame_id=None):
-        """ Loads intrinsics, computes scaled intrinsics, and returns a dict 
+        """ Loads intrinsics, computes scaled intrinsics, and returns a dict
             with intrinsics matrices for a frame at multiple scales.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
-                frame_id: id for the frame. Not needed for ScanNet as images 
+                frame_id: id for the frame. Not needed for ScanNet as images
                 share intrinsics across a scene.
 
             Returns:
                 output_dict: A dict with
-                    - K_s{i}_b44 (intrinsics) and invK_s{i}_b44 
+                    - K_s{i}_b44 (intrinsics) and invK_s{i}_b44
                     (backprojection) where i in [0,1,2,3,4]. i=0 provides
-                    intrinsics at the scale for depth_b1hw. 
-                    - K_full_depth_b44 and invK_full_depth_b44 provides 
+                    intrinsics at the scale for depth_b1hw.
+                    - K_full_depth_b44 and invK_full_depth_b44 provides
                     intrinsics for the maximum available depth resolution.
-                    Only provided when include_full_res_depth is true. 
-            
+                    Only provided when include_full_res_depth is true.
+
         """
         output_dict = {}
 
@@ -471,9 +472,9 @@ class ScannetDataset(GenericMVSDataset):
             Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                depth: depth map at the right resolution. Will contain NaNs 
+                depth: depth map at the right resolution. Will contain NaNs
                     where depth values are invalid.
                 mask: a float validity mask for the depth maps. (1.0 where depth
                 is valid).
@@ -494,13 +495,13 @@ class ScannetDataset(GenericMVSDataset):
                             )
 
         # Get the float valid mask
-        mask_b = ((depth > self.min_valid_depth) 
+        mask_b = ((depth > self.min_valid_depth)
                                 & (depth < self.max_valid_depth))
         mask = mask_b.float()
 
         # set invalids to nan
         depth[~mask_b] = torch.tensor(np.nan)
-        
+
         return depth, mask, mask_b
 
     def load_full_res_depth_and_mask(self, scan_id, frame_id):
@@ -511,22 +512,22 @@ class ScannetDataset(GenericMVSDataset):
             Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-                
+
             Returns:
-                full_res_depth: depth map at the right resolution. Will contain 
+                full_res_depth: depth map at the right resolution. Will contain
                     NaNs where depth values are invalid.
-                full_res_mask: a float validity mask for the depth maps. (1.0 
+                full_res_mask: a float validity mask for the depth maps. (1.0
                 where depth is valid).
                 full_res_mask_b: like mask but boolean.
         """
         full_res_depth_filepath = self.get_full_res_depth_filepath(
                                                     scan_id, frame_id)
         # Load depth
-        full_res_depth = read_image_file(full_res_depth_filepath, 
+        full_res_depth = read_image_file(full_res_depth_filepath,
                                                 value_scale_factor=1e-3)
 
         # Get the float valid mask
-        full_res_mask_b = ((full_res_depth > self.min_valid_depth) 
+        full_res_mask_b = ((full_res_depth > self.min_valid_depth)
                                 & (full_res_depth < self.max_valid_depth))
         full_res_mask = full_res_mask_b.float()
 
@@ -538,14 +539,14 @@ class ScannetDataset(GenericMVSDataset):
     def load_pose(self, scan_id, frame_id):
         """ Loads a frame's pose file.
 
-            Args: 
+            Args:
                 scan_id: the scan this file belongs to.
                 frame_id: id for the frame.
-            
+
             Returns:
-                world_T_cam (numpy array): matrix for transforming from the 
+                world_T_cam (numpy array): matrix for transforming from the
                     camera to the world (pose).
-                cam_T_world (numpy array): matrix for transforming from the 
+                cam_T_world (numpy array): matrix for transforming from the
                     world to the camera (extrinsics).
 
         """
