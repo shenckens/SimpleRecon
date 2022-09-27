@@ -244,7 +244,7 @@ class ScannetDataset(GenericMVSDataset):
                 depth_filename = os.path.join(sensor_data_dir, 'depth',
                                             f"{frame_id}.png")
                 pose_path = os.path.join(sensor_data_dir, 'pose',
-                                            f"{frame_id}=.txt")
+                                            f"{frame_id}.txt")
 
                 # check if an image file exists.
                 if not os.path.isfile(color_filename):
@@ -320,7 +320,7 @@ class ScannetDataset(GenericMVSDataset):
             return cached_resized_path
 
         # instead return the default image
-        return os.path.join(sensor_data_dir, 'color', f"{frame_id}.jpg")
+        return os.path.join(sensor_data_dir, 'color', f"{str(frame_id).lstrip('0')}.jpg")
 
     def get_high_res_color_filepath(self, scan_id, frame_id):
         """ returns the filepath for a frame's higher res color file at the
@@ -347,7 +347,7 @@ class ScannetDataset(GenericMVSDataset):
             return cached_resized_path
 
         # instead return the default image
-        return os.path.join(sensor_data_dir, 'color', f"{frame_id}.jpg")
+        return os.path.join(sensor_data_dir, 'color', f"{str(frame_id).lstrip('0')}.jpg")
 
     def get_cached_depth_filepath(self, scan_id, frame_id):
         """ returns the filepath for a frame's depth file at the dataset's
@@ -366,7 +366,7 @@ class ScannetDataset(GenericMVSDataset):
         sensor_data_dir = os.path.join(scene_path)
 
         cached_resized_path = os.path.join(sensor_data_dir, 'depth',
-                f"{frame_id}.png")
+                f"{str(frame_id).lstrip('0')}.png")
 
         # instead return the default image
         return cached_resized_path
@@ -389,7 +389,7 @@ class ScannetDataset(GenericMVSDataset):
         sensor_data_dir = os.path.join(scene_path)
 
         return os.path.join(sensor_data_dir, 'depth',
-                        f"{frame_id}.png")
+                        f"{str(frame_id).lstrip('0')}.png")
 
     def get_pose_filepath(self, scan_id, frame_id):
         """ returns the filepath for a frame's pose file.
@@ -406,7 +406,7 @@ class ScannetDataset(GenericMVSDataset):
         scene_path = os.path.join(self.scenes_path, scan_id)
         sensor_data_dir = os.path.join(scene_path)
 
-        return os.path.join(sensor_data_dir, 'pose', f"{frame_id}.txt")
+        return os.path.join(sensor_data_dir, 'pose', f"{str(frame_id).lstrip('0')}.txt")
 
     def load_intrinsics(self, scan_id, frame_id=None):
         """ Loads intrinsics, computes scaled intrinsics, and returns a dict
