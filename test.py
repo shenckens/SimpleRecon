@@ -254,155 +254,154 @@ def main(opts):
                                             )
 
             for batch_ind, batch in enumerate(tqdm(dataloader)):
-                with torch.no_grad():
-                    # get data, move to GPU
-                    cur_data, src_data = batch
-                    cur_data = to_gpu(cur_data, key_ignores=["frame_id_string"])
-                    src_data = to_gpu(src_data, key_ignores=["frame_id_string"])
+                # get data, move to GPU
+                cur_data, src_data = batch
+                cur_data = to_gpu(cur_data, key_ignores=["frame_id_string"])
+                src_data = to_gpu(src_data, key_ignores=["frame_id_string"])
 
-                    depth_gt = cur_data["full_res_depth_b1hw"]
+                depth_gt = cur_data["full_res_depth_b1hw"]
 
-                    # run to get output, also measure time
-                    start_time.record()
-                    # use unbatched (looping) matching encoder image forward passes
-                    # for numerically stable testing. If opts.fast_cost_volume, then
-                    # batch.
-                    outputs = model(
-                                    "test", cur_data, src_data,
-                                    unbatched_matching_encoder_forward=(
-                                        not opts.fast_cost_volume
-                                    ),
-                                    return_mask=True,
-                                )
-                    end_time.record()
-                    torch.cuda.synchronize()
+                # run to get output, also measure time
+                start_time.record()
+                # use unbatched (looping) matching encoder image forward passes
+                # for numerically stable testing. If opts.fast_cost_volume, then
+                # batch.
+                outputs = model(
+                                "test", cur_data, src_data,
+                                unbatched_matching_encoder_forward=(
+                                    not opts.fast_cost_volume
+                                ),
+                                return_mask=True,
+                            )
+                end_time.record()
+                torch.cuda.synchronize()
 
-                    elapsed_model_time = start_time.elapsed_time(end_time)
-                    after_inference_mem = torch.cuda.memory_allocated(0)
+                elapsed_model_time = start_time.elapsed_time(end_time)
+                after_inference_mem = torch.cuda.memory_allocated(0)
 
-                    upsampled_depth_pred_b1hw = F.interpolate(
-                                    outputs["depth_pred_s0_b1hw"],
-                                    size=(depth_gt.shape[-2], depth_gt.shape[-1]),
-                                    mode="nearest",
-                                )
+                upsampled_depth_pred_b1hw = F.interpolate(
+                                outputs["depth_pred_s0_b1hw"],
+                                size=(depth_gt.shape[-2], depth_gt.shape[-1]),
+                                mode="nearest",
+                            )
 
-                    # inf max depth matches DVMVS metrics, using minimum of 0.5m
-                    valid_mask_b = (cur_data["full_res_depth_b1hw"] > 0.5)
+                # inf max depth matches DVMVS metrics, using minimum of 0.5m
+                valid_mask_b = (cur_data["full_res_depth_b1hw"] > 0.5)
 
-                    # Check if there any valid gt points in this sample
-                    if (valid_mask_b).any():
-                        # compute metrics
-                        metrics_b_dict = compute_depth_metrics_batched(
-                            depth_gt.flatten(start_dim=1).float(),
-                            upsampled_depth_pred_b1hw.flatten(start_dim=1).float(),
-                            valid_mask_b.flatten(start_dim=1),
-                            mult_a=True,
-                        )
+                # Check if there any valid gt points in this sample
+                if (valid_mask_b).any():
+                    # compute metrics
+                    metrics_b_dict = compute_depth_metrics_batched(
+                        depth_gt.flatten(start_dim=1).float(),
+                        upsampled_depth_pred_b1hw.flatten(start_dim=1).float(),
+                        valid_mask_b.flatten(start_dim=1),
+                        mult_a=True,
+                    )
 
-                        # go over batch and get metrics frame by frame to update
-                        # the averagers
-                        for element_index in range(depth_gt.shape[0]):
-                            if (~valid_mask_b[element_index]).all():
-                                # ignore if no valid gt exists
-                                continue
+                    # go over batch and get metrics frame by frame to update
+                    # the averagers
+                    for element_index in range(depth_gt.shape[0]):
+                        if (~valid_mask_b[element_index]).all():
+                            # ignore if no valid gt exists
+                            continue
 
-                            element_metrics = {}
-                            for key in list(metrics_b_dict.keys()):
-                                element_metrics[key] = metrics_b_dict[key][element_index]
+                        element_metrics = {}
+                        for key in list(metrics_b_dict.keys()):
+                            element_metrics[key] = metrics_b_dict[key][element_index]
 
-                            # get per frame time in the batch
-                            element_metrics["model_time"] = (elapsed_model_time /
-                                                                depth_gt.shape[0])
-                            element_metrics['gpu_memory'] = (after_inference_mem /
-                                                                depth_gt.shape[0])
+                        # get per frame time in the batch
+                        element_metrics["model_time"] = (elapsed_model_time /
+                                                            depth_gt.shape[0])
+                        element_metrics['gpu_memory'] = (after_inference_mem /
+                                                            depth_gt.shape[0])
 
-                            # both this scene and all frame averagers
-                            scene_frame_metrics.update_results(element_metrics)
-                            all_frame_metrics.update_results(element_metrics)
+                        # both this scene and all frame averagers
+                        scene_frame_metrics.update_results(element_metrics)
+                        all_frame_metrics.update_results(element_metrics)
 
-                    ######################### DEPTH FUSION #########################
-                    if opts.run_fusion:
-                        # mask predicted depths when no vaiid MVS information
-                        # exists, off by default
-                        if opts.mask_pred_depth:
-                            overall_mask_b1hw = outputs[
-                                                        "overall_mask_bhw"
-                                                ].cuda().unsqueeze(1).float()
+                ######################### DEPTH FUSION #########################
+                if opts.run_fusion:
+                    # mask predicted depths when no vaiid MVS information
+                    # exists, off by default
+                    if opts.mask_pred_depth:
+                        overall_mask_b1hw = outputs[
+                                                    "overall_mask_bhw"
+                                            ].cuda().unsqueeze(1).float()
 
-                            overall_mask_b1hw = F.interpolate(
-                                    overall_mask_b1hw,
-                                    size=(depth_gt.shape[-2], depth_gt.shape[-1]),
-                                    mode="nearest"
+                        overall_mask_b1hw = F.interpolate(
+                                overall_mask_b1hw,
+                                size=(depth_gt.shape[-2], depth_gt.shape[-1]),
+                                mode="nearest"
+                        ).bool()
+
+                        upsampled_depth_pred_b1hw[~overall_mask_b1hw] = -1
+
+                    # fuse the raw best guess depths from the cost volume, off
+                    # by default
+                    if opts.fusion_use_raw_lowest_cost:
+                        # upsampled_depth_pred_b1hw becomes the argmax from the
+                        # cost volume
+                        upsampled_depth_pred_b1hw = outputs[
+                                                        "lowest_cost_bhw"
+                                                    ].unsqueeze(1)
+
+                        upsampled_depth_pred_b1hw = F.interpolate(
+                                upsampled_depth_pred_b1hw,
+                                size=(depth_gt.shape[-2], depth_gt.shape[-1]),
+                                mode="nearest",
+                            )
+
+                        overall_mask_b1hw = outputs[
+                                                "overall_mask_bhw"
+                                            ].cuda().unsqueeze(1).float()
+
+                        overall_mask_b1hw = F.interpolate(
+                                overall_mask_b1hw,
+                                size=(depth_gt.shape[-2], depth_gt.shape[-1]),
+                                mode="nearest"
                             ).bool()
 
-                            upsampled_depth_pred_b1hw[~overall_mask_b1hw] = -1
+                        upsampled_depth_pred_b1hw[~overall_mask_b1hw] = -1
 
-                        # fuse the raw best guess depths from the cost volume, off
-                        # by default
-                        if opts.fusion_use_raw_lowest_cost:
-                            # upsampled_depth_pred_b1hw becomes the argmax from the
-                            # cost volume
-                            upsampled_depth_pred_b1hw = outputs[
-                                                            "lowest_cost_bhw"
-                                                        ].unsqueeze(1)
+                    color_frame = (cur_data["high_res_color_b3hw"]
+                                    if  "high_res_color_b3hw" in cur_data
+                                     else cur_data["image_b3hw"])
 
-                            upsampled_depth_pred_b1hw = F.interpolate(
-                                    upsampled_depth_pred_b1hw,
-                                    size=(depth_gt.shape[-2], depth_gt.shape[-1]),
-                                    mode="nearest",
+                    fuser.fuse_frames(
+                                        upsampled_depth_pred_b1hw,
+                                        cur_data["K_full_depth_b44"],
+                                        cur_data["cam_T_world_b44"],
+                                        color_frame
                                 )
 
-                            overall_mask_b1hw = outputs[
-                                                    "overall_mask_bhw"
-                                                ].cuda().unsqueeze(1).float()
+                ########################### Quick Viz ##########################
+                if opts.dump_depth_visualization:
+                    # make a dir for this scan
+                    output_path = os.path.join(viz_output_dir, scan)
+                    Path(output_path).mkdir(parents=True, exist_ok=True)
 
-                            overall_mask_b1hw = F.interpolate(
-                                    overall_mask_b1hw,
-                                    size=(depth_gt.shape[-2], depth_gt.shape[-1]),
-                                    mode="nearest"
-                                ).bool()
-
-                            upsampled_depth_pred_b1hw[~overall_mask_b1hw] = -1
-
-                        color_frame = (cur_data["high_res_color_b3hw"]
-                                        if  "high_res_color_b3hw" in cur_data
-                                         else cur_data["image_b3hw"])
-
-                        fuser.fuse_frames(
-                                            upsampled_depth_pred_b1hw,
-                                            cur_data["K_full_depth_b44"],
-                                            cur_data["cam_T_world_b44"],
-                                            color_frame
-                                    )
-
-                    ########################### Quick Viz ##########################
-                    if opts.dump_depth_visualization:
-                        # make a dir for this scan
-                        output_path = os.path.join(viz_output_dir, scan)
-                        Path(output_path).mkdir(parents=True, exist_ok=True)
-
-                        quick_viz_export(
-                                    output_path,
-                                    outputs,
-                                    cur_data,
-                                    batch_ind,
-                                    valid_mask_b,
-                                    opts.batch_size,
-                                )
-                    ########################## Cache Depths ########################
-                    if opts.cache_depths:
-                        output_path = os.path.join(depth_output_dir, scan)
-                        Path(output_path).mkdir(parents=True, exist_ok=True)
+                    quick_viz_export(
+                                output_path,
+                                outputs,
+                                cur_data,
+                                batch_ind,
+                                valid_mask_b,
+                                opts.batch_size,
+                            )
+                ########################## Cache Depths ########################
+                if opts.cache_depths:
+                    output_path = os.path.join(depth_output_dir, scan)
+                    Path(output_path).mkdir(parents=True, exist_ok=True)
 
 
-                        cache_model_outputs(
-                                    output_path,
-                                    outputs,
-                                    cur_data,
-                                    src_data,
-                                    batch_ind,
-                                    opts.batch_size,
-                                )
+                    cache_model_outputs(
+                                output_path,
+                                outputs,
+                                cur_data,
+                                src_data,
+                                batch_ind,
+                                opts.batch_size,
+                            )
 
 
             # save the fused tsdf into a mesh file
